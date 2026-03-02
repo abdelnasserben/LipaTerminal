@@ -2,10 +2,10 @@ package com.kori.terminal.ui.terminal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kori.terminal.data.auth.KeycloakAuthService
 import com.kori.terminal.data.payments.PayByCardResponse
 import com.kori.terminal.data.payments.PaymentService
 import com.kori.terminal.data.secure.SecureSettingsStore
+import com.kori.terminal.ui.auth.Session
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -24,13 +24,7 @@ enum class PaymentStep {
 }
 
 data class TerminalUiState(
-    // Auth
-    val authLoading: Boolean = false,
-    val actorRef: String? = null,
-    val token: String? = null,
-    val authError: String? = null,
-
-    // Payment
+    val actorRef: String,
     val step: PaymentStep = PaymentStep.EnterAmount,
     val amountText: String = "",
     val amountLocked: Boolean = false,
@@ -42,54 +36,14 @@ data class TerminalUiState(
 )
 
 class TerminalViewModel(
-    private val store: SecureSettingsStore
+    private val store: SecureSettingsStore,
+    private val session: Session
 ) : ViewModel() {
 
-    private val authService = KeycloakAuthService()
     private val paymentService = PaymentService()
 
-    private val _uiState = MutableStateFlow(TerminalUiState())
+    private val _uiState = MutableStateFlow(TerminalUiState(actorRef = session.actorRef))
     val uiState: StateFlow<TerminalUiState> = _uiState
-
-    fun authenticate() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(authLoading = true, authError = null) }
-
-            val config = withTimeoutOrNull(1500) {
-                store.configFlow().filterNotNull().firstOrNull()
-            }
-
-            if (config == null) {
-                _uiState.update {
-                    it.copy(authLoading = false, authError = "Configuration absente. Enregistre d'abord la configuration.")
-                }
-                return@launch
-            }
-
-            val result = authService.authenticate(config)
-
-            _uiState.update { s ->
-                result.fold(
-                    onSuccess = { ok ->
-                        s.copy(
-                            authLoading = false,
-                            token = ok.accessToken,
-                            actorRef = ok.actorRef,
-                            authError = null
-                        )
-                    },
-                    onFailure = { err ->
-                        s.copy(
-                            authLoading = false,
-                            authError = err.message ?: err.toString()
-                        )
-                    }
-                )
-            }
-        }
-    }
-
-    // ----- Payment flow -----
 
     fun onAmountChanged(v: String) {
         if (_uiState.value.amountLocked) return
@@ -129,12 +83,6 @@ class TerminalViewModel(
 
     fun pay() {
         viewModelScope.launch {
-            val token = _uiState.value.token
-            if (token.isNullOrBlank()) {
-                _uiState.update { it.copy(paymentError = "Non authentifié. Clique sur “S'authentifier”.") }
-                return@launch
-            }
-
             val config = withTimeoutOrNull(1500) {
                 store.configFlow().filterNotNull().firstOrNull()
             } ?: run {
@@ -173,7 +121,7 @@ class TerminalViewModel(
 
             val result = paymentService.payByCard(
                 baseUrl = config.koriBaseUrl,
-                bearerToken = token,
+                bearerToken = session.token,
                 idempotencyKey = idempotencyKey,
                 amount = amount,
                 cardUid = uid,
@@ -188,15 +136,15 @@ class TerminalViewModel(
                             paymentLoading = false,
                             paymentResult = resp,
                             paymentError = null,
-                            pinText = "" // sécurité: purge PIN après usage
+                            pinText = ""
                         )
                     },
                     onFailure = { err ->
                         s.copy(
-                            step = PaymentStep.EnterPin, // retour PIN pour corriger / retry
+                            step = PaymentStep.EnterPin,
                             paymentLoading = false,
                             paymentError = err.message ?: err.toString(),
-                            pinText = "" // purge PIN même en erreur
+                            pinText = ""
                         )
                     }
                 )

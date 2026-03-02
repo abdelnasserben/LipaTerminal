@@ -2,9 +2,9 @@ package com.kori.terminal.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.kori.terminal.data.auth.KeycloakAuthService
 import com.kori.terminal.data.secure.SecureSettingsStore
 import com.kori.terminal.data.terminalme.TerminalMeService
+import com.kori.terminal.ui.auth.Session
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -23,16 +23,16 @@ data class DashboardUiState(
 
 class DashboardViewModel(
     private val store: SecureSettingsStore,
-    private val authService: KeycloakAuthService = KeycloakAuthService(),
+    private val session: Session,
     private val terminalMeService: TerminalMeService = TerminalMeService()
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(DashboardUiState())
+    private val _uiState = MutableStateFlow(DashboardUiState(actorRef = session.actorRef))
     val uiState: StateFlow<DashboardUiState> = _uiState
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.update { it.copy(loading = true, error = null) }
+            _uiState.update { it.copy(loading = true, error = null, actorRef = session.actorRef) }
 
             val config = store.configFlow().filterNotNull().firstOrNull()
             if (config == null) {
@@ -40,19 +40,13 @@ class DashboardViewModel(
                 return@launch
             }
 
-            val auth = authService.authenticate(config)
-            val authResult = auth.getOrElse { err ->
-                _uiState.update { it.copy(loading = false, error = err.message ?: "Erreur authentification") }
-                return@launch
-            }
-
-            val meResult = terminalMeService.loadAll(config.koriBaseUrl, authResult.accessToken)
+            val meResult = terminalMeService.loadAll(config.koriBaseUrl, session.token)
             meResult.fold(
                 onSuccess = { snapshot ->
                     _uiState.update {
                         it.copy(
                             loading = false,
-                            actorRef = authResult.actorRef,
+                            actorRef = session.actorRef,
                             status = snapshot.status,
                             health = snapshot.health,
                             config = snapshot.config,
@@ -61,7 +55,7 @@ class DashboardViewModel(
                     }
                 },
                 onFailure = { err ->
-                    _uiState.update { it.copy(loading = false, actorRef = authResult.actorRef, error = err.message) }
+                    _uiState.update { it.copy(loading = false, actorRef = session.actorRef, error = err.message) }
                 }
             )
         }
