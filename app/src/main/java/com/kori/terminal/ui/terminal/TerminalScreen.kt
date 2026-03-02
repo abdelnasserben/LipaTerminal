@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TerminalScreen(
     viewModel: TerminalViewModel,
-    onResetConfig: suspend () -> Unit
+    onBackToDashboard: () -> Unit
 ) {
     val s = viewModel.uiState.collectAsState().value
     val context = LocalContext.current
@@ -25,7 +25,6 @@ fun TerminalScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // NFC actif uniquement pendant TapCard
     LaunchedEffect(s.step) {
         if (s.step == PaymentStep.TapCard) {
             nfcReader.enable(
@@ -41,7 +40,6 @@ fun TerminalScreen(
         }
     }
 
-    // Affiche erreurs auth/paiement
     LaunchedEffect(s.authError) {
         val err = s.authError ?: return@LaunchedEffect
         snackbarHostState.showSnackbar(err)
@@ -61,7 +59,12 @@ fun TerminalScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            // ---- Auth section ----
+            Button(modifier = Modifier.fillMaxWidth(), onClick = onBackToDashboard) {
+                Text("Retour dashboard")
+            }
+
+            Spacer(Modifier.height(24.dp))
+
             Text("Auth terminal")
             Spacer(Modifier.height(8.dp))
 
@@ -69,10 +72,12 @@ fun TerminalScreen(
                 s.authLoading -> {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
+
                 s.token != null -> {
                     Text("Authentifié ✅")
                     Text("actorRef: ${s.actorRef}")
                 }
+
                 else -> {
                     Button(
                         modifier = Modifier.fillMaxWidth(),
@@ -85,7 +90,6 @@ fun TerminalScreen(
             Divider()
             Spacer(Modifier.height(24.dp))
 
-            // ---- Payment flow ----
             Text("Paiement")
             Spacer(Modifier.height(12.dp))
 
@@ -172,15 +176,6 @@ fun TerminalScreen(
                         onClick = { viewModel.resetPayment() }
                     ) { Text("Nouveau paiement") }
                 }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Button(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { scope.launch { onResetConfig() } }
-            ) {
-                Text("Réinitialiser la configuration")
             }
         }
     }

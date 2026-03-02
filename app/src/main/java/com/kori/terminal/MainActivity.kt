@@ -13,6 +13,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.kori.terminal.data.secure.SecureSettingsStore
 import com.kori.terminal.ui.boot.BootScreen
+import com.kori.terminal.ui.dashboard.DashboardScreen
+import com.kori.terminal.ui.dashboard.DashboardViewModel
 import com.kori.terminal.ui.setup.SetupScreen
 import com.kori.terminal.ui.setup.SetupViewModel
 import com.kori.terminal.ui.terminal.TerminalScreen
@@ -22,6 +24,7 @@ import com.kori.terminal.ui.theme.KoriTerminalTheme
 private object Routes {
     const val Boot = "boot"
     const val Setup = "setup"
+    const val Dashboard = "dashboard"
     const val Terminal = "terminal"
 }
 
@@ -30,7 +33,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            KoriTerminalTheme  {
+            KoriTerminalTheme {
                 val navController = rememberNavController()
                 val store = remember { SecureSettingsStore(applicationContext) }
 
@@ -42,7 +45,7 @@ class MainActivity : ComponentActivity() {
                         val cfg by store.configFlow().collectAsState(initial = null)
 
                         LaunchedEffect(cfg) {
-                            val dest = if (cfg == null) Routes.Setup else Routes.Terminal
+                            val dest = if (cfg == null) Routes.Setup else Routes.Dashboard
                             navController.navigate(dest) {
                                 popUpTo(Routes.Boot) { inclusive = true }
                             }
@@ -64,8 +67,32 @@ class MainActivity : ComponentActivity() {
                         SetupScreen(
                             viewModel = setupVm,
                             onContinueToTerminal = {
-                                navController.navigate(Routes.Terminal) {
+                                navController.navigate(Routes.Dashboard) {
                                     popUpTo(Routes.Setup) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
+                    composable(Routes.Dashboard) {
+                        val dashboardVm: DashboardViewModel = viewModel(
+                            factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                                @Suppress("UNCHECKED_CAST")
+                                override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                                    return DashboardViewModel(store) as T
+                                }
+                            }
+                        )
+
+                        DashboardScreen(
+                            viewModel = dashboardVm,
+                            onOpenTerminal = {
+                                navController.navigate(Routes.Terminal)
+                            },
+                            onResetConfig = {
+                                store.clear()
+                                navController.navigate(Routes.Setup) {
+                                    popUpTo(Routes.Dashboard) { inclusive = true }
                                 }
                             }
                         )
@@ -83,12 +110,7 @@ class MainActivity : ComponentActivity() {
 
                         TerminalScreen(
                             viewModel = terminalVm,
-                            onResetConfig = {
-                                store.clear()
-                                navController.navigate(Routes.Setup) {
-                                    popUpTo(Routes.Terminal) { inclusive = true }
-                                }
-                            }
+                            onBackToDashboard = { navController.popBackStack() }
                         )
                     }
                 }
