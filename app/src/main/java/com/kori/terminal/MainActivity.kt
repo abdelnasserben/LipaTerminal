@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.kori.terminal.data.secure.SecureSettingsStore
 import com.kori.terminal.data.secure.StoredSession
+import com.kori.terminal.data.auth.JwtTokenState
 import com.kori.terminal.ui.auth.AuthScreen
 import com.kori.terminal.ui.auth.AuthViewModel
 import com.kori.terminal.ui.auth.Session
@@ -27,6 +28,7 @@ import com.kori.terminal.ui.terminal.TerminalScreen
 import com.kori.terminal.ui.terminal.TerminalViewModel
 import com.kori.terminal.ui.theme.KoriTerminalTheme
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private object Routes {
@@ -47,6 +49,33 @@ class MainActivity : ComponentActivity() {
                 val store = remember { SecureSettingsStore(applicationContext) }
                 var session: Session? by remember { mutableStateOf(null) }
 
+                LaunchedEffect(session?.token) {
+                    val activeSession = session ?: return@LaunchedEffect
+                    val expirationEpochSeconds = JwtTokenState.expirationEpochSeconds(activeSession.token)
+
+                    if (expirationEpochSeconds == null) {
+                        session = null
+                        store.clearSession()
+                        return@LaunchedEffect
+                    }
+
+                    val nowEpochSeconds = System.currentTimeMillis() / 1000
+                    val remainingSeconds = expirationEpochSeconds - nowEpochSeconds
+
+                    if (remainingSeconds <= 0) {
+                        session = null
+                        store.clearSession()
+                        return@LaunchedEffect
+                    }
+
+                    delay(remainingSeconds * 1000)
+
+                    if (session?.token == activeSession.token) {
+                        session = null
+                        store.clearSession()
+                    }
+                }
+
                 NavHost(
                     navController = navController,
                     startDestination = Routes.Boot
@@ -58,12 +87,16 @@ class MainActivity : ComponentActivity() {
 
                             val dest = when {
                                 cfg == null -> Routes.Setup
-                                persistedSession != null -> {
+                                persistedSession != null && JwtTokenState.isNonExpired(persistedSession.token) -> {
                                     session = Session(
                                         token = persistedSession.token,
                                         actorRef = persistedSession.actorRef
                                     )
                                     Routes.Dashboard
+                                }
+                                persistedSession != null -> {
+                                    store.clearSession()
+                                    Routes.Auth
                                 }
                                 else -> Routes.Auth
                             }
