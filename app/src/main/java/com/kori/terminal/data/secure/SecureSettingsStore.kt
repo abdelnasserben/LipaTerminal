@@ -28,6 +28,13 @@ data class AppConfig(
                 clientSecret.isNotBlank()
 }
 
+data class StoredSession(
+    val token: String,
+    val actorRef: String
+) {
+    fun isValid(): Boolean = token.isNotBlank() && actorRef.isNotBlank()
+}
+
 private val Context.dataStore by preferencesDataStore(name = "lipa_terminal_datastore")
 
 class SecureSettingsStore(private val context: Context) {
@@ -38,6 +45,13 @@ class SecureSettingsStore(private val context: Context) {
         return context.dataStore.data.map { prefs ->
             val blob = prefs[KEY_CONFIG_BLOB] ?: return@map null
             decryptConfig(blob)
+        }
+    }
+
+    fun sessionFlow(): Flow<StoredSession?> {
+        return context.dataStore.data.map { prefs ->
+            val blob = prefs[KEY_SESSION_BLOB] ?: return@map null
+            decryptSession(blob)
         }
     }
 
@@ -52,6 +66,21 @@ class SecureSettingsStore(private val context: Context) {
     suspend fun clear() {
         context.dataStore.edit { prefs ->
             prefs.remove(KEY_CONFIG_BLOB)
+            prefs.remove(KEY_SESSION_BLOB)
+        }
+    }
+
+    suspend fun saveSession(session: StoredSession) {
+        require(session.isValid()) { "Session invalide" }
+        val blob = encryptSession(session)
+        context.dataStore.edit { prefs ->
+            prefs[KEY_SESSION_BLOB] = blob
+        }
+    }
+
+    suspend fun clearSession() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(KEY_SESSION_BLOB)
         }
     }
 
@@ -90,8 +119,40 @@ class SecureSettingsStore(private val context: Context) {
         }
     }
 
+    private fun encryptSession(session: StoredSession): String {
+        val json = JSONObject().apply {
+            put("token", session.token)
+            put("actorRef", session.actorRef)
+        }.toString()
+
+        val ciphertext = aead.encrypt(
+            json.toByteArray(StandardCharsets.UTF_8),
+            ASSOCIATED_DATA
+        )
+
+        return Base64.getEncoder().encodeToString(ciphertext)
+    }
+
+    private fun decryptSession(blob: String): StoredSession? {
+        return try {
+            val ciphertext = Base64.getDecoder().decode(blob)
+            val plaintext = aead.decrypt(ciphertext, ASSOCIATED_DATA)
+            val json = JSONObject(String(plaintext, StandardCharsets.UTF_8))
+
+            val session = StoredSession(
+                token = json.optString("token", ""),
+                actorRef = json.optString("actorRef", "")
+            )
+
+            if (session.isValid()) session else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     companion object {
         private val KEY_CONFIG_BLOB = stringPreferencesKey("config_blob")
+        private val KEY_SESSION_BLOB = stringPreferencesKey("session_blob")
 
         // “Associated data” : empêche de réutiliser le blob dans un autre contexte
         private val ASSOCIATED_DATA =

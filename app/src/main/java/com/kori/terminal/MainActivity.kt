@@ -4,16 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.kori.terminal.data.secure.SecureSettingsStore
+import com.kori.terminal.data.secure.StoredSession
 import com.kori.terminal.ui.auth.AuthScreen
 import com.kori.terminal.ui.auth.AuthViewModel
 import com.kori.terminal.ui.auth.Session
@@ -25,6 +26,8 @@ import com.kori.terminal.ui.setup.SetupViewModel
 import com.kori.terminal.ui.terminal.TerminalScreen
 import com.kori.terminal.ui.terminal.TerminalViewModel
 import com.kori.terminal.ui.theme.KoriTerminalTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 private object Routes {
     const val Boot = "boot"
@@ -49,10 +52,22 @@ class MainActivity : ComponentActivity() {
                     startDestination = Routes.Boot
                 ) {
                     composable(Routes.Boot) {
-                        val cfg by store.configFlow().collectAsState(initial = null)
+                        LaunchedEffect(Unit) {
+                            val cfg = store.configFlow().first()
+                            val persistedSession = store.sessionFlow().first()
 
-                        LaunchedEffect(cfg) {
-                            val dest = if (cfg == null) Routes.Setup else Routes.Auth
+                            val dest = when {
+                                cfg == null -> Routes.Setup
+                                persistedSession != null -> {
+                                    session = Session(
+                                        token = persistedSession.token,
+                                        actorRef = persistedSession.actorRef
+                                    )
+                                    Routes.Dashboard
+                                }
+                                else -> Routes.Auth
+                            }
+
                             navController.navigate(dest) {
                                 popUpTo(Routes.Boot) { inclusive = true }
                             }
@@ -95,6 +110,10 @@ class MainActivity : ComponentActivity() {
                             viewModel = authVm,
                             onAuthenticated = { authenticatedSession ->
                                 session = authenticatedSession
+                                setupVmSafeSaveSession(
+                                    store = store,
+                                    session = authenticatedSession
+                                )
                                 navController.navigate(Routes.Dashboard) {
                                     popUpTo(Routes.Auth) { inclusive = true }
                                 }
@@ -166,6 +185,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun setupVmSafeSaveSession(
+        store: SecureSettingsStore,
+        session: Session
+    ) {
+        lifecycleScope.launch {
+            store.saveSession(
+                StoredSession(
+                    token = session.token,
+                    actorRef = session.actorRef
+                )
+            )
         }
     }
 }
