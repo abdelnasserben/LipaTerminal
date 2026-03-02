@@ -3,20 +3,13 @@ package com.kori.terminal.ui.terminal
 import android.app.Activity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -27,18 +20,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.kori.terminal.data.nfc.NfcUidReader
+import com.kori.terminal.ui.components.InfoRow
+import com.kori.terminal.ui.components.LipaCard
+import com.kori.terminal.ui.components.LipaScaffold
+import com.kori.terminal.ui.components.LipaScreenContainer
+import com.kori.terminal.ui.components.PrimaryActionButton
+import com.kori.terminal.ui.components.SecondaryActionButton
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TerminalScreen(
     viewModel: TerminalViewModel,
     onBackToDashboard: () -> Unit
 ) {
     val s = viewModel.uiState.collectAsState().value
-    val context = LocalContext.current
-    val activity = context as Activity
-
+    val activity = LocalContext.current as Activity
     val nfcReader = remember { NfcUidReader(activity) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -46,130 +42,115 @@ fun TerminalScreen(
     LaunchedEffect(s.step) {
         if (s.step == PaymentStep.TapCard) {
             nfcReader.enable(
-                onUid = { uid ->
-                    activity.runOnUiThread { viewModel.onCardUidScanned(uid) }
-                },
-                onError = { msg ->
-                    activity.runOnUiThread { scope.launch { snackbarHostState.showSnackbar(msg) } }
-                }
+                onUid = { uid -> activity.runOnUiThread { viewModel.onCardUidScanned(uid) } },
+                onError = { msg -> activity.runOnUiThread { scope.launch { snackbarHostState.showSnackbar(msg) } } }
             )
         } else {
             nfcReader.disable()
         }
     }
 
-    LaunchedEffect(s.paymentError) {
-        val err = s.paymentError ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(err)
-    }
+    LaunchedEffect(s.paymentError) { s.paymentError?.let { snackbarHostState.showSnackbar(it) } }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Lipa Terminal") }) },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Button(modifier = Modifier.fillMaxWidth(), onClick = onBackToDashboard) {
-                Text("Retour dashboard")
+    LipaScaffold(title = "Payment terminal", snackbarHostState = snackbarHostState) { padding ->
+        LipaScreenContainer(padding) {
+            SecondaryActionButton(text = "Back to dashboard", onClick = onBackToDashboard)
+
+            LipaCard {
+                Column {
+                    Text("Current session", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(10.dp))
+                    InfoRow("Actor", s.actorRef)
+                }
             }
 
-            Spacer(Modifier.height(12.dp))
-            Text("Session: ${s.actorRef}")
-            Spacer(Modifier.height(24.dp))
-            Divider()
-            Spacer(Modifier.height(24.dp))
-
-            Text("Paiement")
-            Spacer(Modifier.height(12.dp))
-
-            when (s.step) {
-                PaymentStep.EnterAmount -> {
-                    Text("Marchand : saisir le montant")
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = s.amountText,
-                        onValueChange = viewModel::onAmountChanged,
-                        label = { Text("Montant") },
-                        singleLine = true
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.lockAmountAndStartNfc() }
-                    ) { Text("Valider le montant") }
-                }
-
-                PaymentStep.TapCard -> {
-                    Text("Montant verrouillé : ${s.amountText}")
-                    Spacer(Modifier.height(12.dp))
-                    Text("Client : approcher la carte NFC (ou simuler)")
-                    Spacer(Modifier.height(12.dp))
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(12.dp))
-                    Text(if (nfcReader.isAvailable()) "NFC prêt ✅" else "NFC indisponible ❌")
-
-                    Spacer(Modifier.height(16.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.simulateCard() }
-                    ) { Text("Simuler carte (debug)") }
-                }
-
-                PaymentStep.EnterPin -> {
-                    Text("Montant verrouillé : ${s.amountText}")
-                    Spacer(Modifier.height(8.dp))
-                    Text("UID: ${s.cardUid}")
-
-                    Spacer(Modifier.height(16.dp))
-                    Text("Client : saisir le PIN (masqué)")
-                    Spacer(Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        modifier = Modifier.fillMaxWidth(),
-                        value = s.pinText,
-                        onValueChange = viewModel::onPinChanged,
-                        label = { Text("PIN (4 chiffres)") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation()
-                    )
-
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = !s.paymentLoading,
-                        onClick = { viewModel.pay() }
-                    ) { Text("Payer") }
-                }
-
-                PaymentStep.Processing -> {
-                    Text("Paiement en cours…")
-                    Spacer(Modifier.height(12.dp))
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                }
-
-                PaymentStep.Done -> {
-                    val r = s.paymentResult
-                    Text("Paiement OK ✅")
-                    Spacer(Modifier.height(8.dp))
-                    if (r != null) {
-                        Text("transactionId: ${r.transactionId}")
-                        Text("merchantCode: ${r.merchantCode ?: "-"}")
-                        Text("amount: ${r.amount}")
-                        Text("fee: ${r.fee ?: "-"}")
-                        Text("totalDebited: ${r.totalDebited ?: "-"}")
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { viewModel.resetPayment() }
-                    ) { Text("Nouveau paiement") }
+            LipaCard {
+                when (s.step) {
+                    PaymentStep.EnterAmount -> EnterAmountBlock(s.amountText, viewModel::onAmountChanged, viewModel::lockAmountAndStartNfc)
+                    PaymentStep.TapCard -> TapCardBlock(s.amountText, nfcReader.isAvailable(), viewModel::simulateCard)
+                    PaymentStep.EnterPin -> EnterPinBlock(s, viewModel::onPinChanged, viewModel::pay)
+                    PaymentStep.Processing -> ProcessingBlock()
+                    PaymentStep.Done -> DoneBlock(s, viewModel::resetPayment)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EnterAmountBlock(amount: String, onAmountChange: (String) -> Unit, onConfirm: () -> Unit) {
+    Column {
+        Text("Enter amount", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = amount,
+            onValueChange = onAmountChange,
+            label = { Text("Amount") },
+            singleLine = true
+        )
+        Spacer(Modifier.height(14.dp))
+        PrimaryActionButton(text = "Lock amount", onClick = onConfirm)
+    }
+}
+
+@Composable
+private fun TapCardBlock(amount: String, isNfcAvailable: Boolean, onSimulate: () -> Unit) {
+    Column {
+        Text("Tap card", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(8.dp))
+        InfoRow("Amount", amount)
+        InfoRow("NFC", if (isNfcAvailable) "Ready" else "Unavailable")
+        Spacer(Modifier.height(14.dp))
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondary)
+        Spacer(Modifier.height(14.dp))
+        SecondaryActionButton(text = "Simulate card (debug)", onClick = onSimulate)
+    }
+}
+
+@Composable
+private fun EnterPinBlock(state: TerminalUiState, onPinChange: (String) -> Unit, onPay: () -> Unit) {
+    Column {
+        Text("PIN verification", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(8.dp))
+        InfoRow("Amount", state.amountText)
+        InfoRow("Card UID", state.cardUid ?: "-")
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            value = state.pinText,
+            onValueChange = onPinChange,
+            label = { Text("PIN (4 digits)") },
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation()
+        )
+        Spacer(Modifier.height(14.dp))
+        PrimaryActionButton(text = "Pay", enabled = !state.paymentLoading, onClick = onPay)
+    }
+}
+
+@Composable
+private fun ProcessingBlock() {
+    Column {
+        Text("Processing payment", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(12.dp))
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondary)
+    }
+}
+
+@Composable
+private fun DoneBlock(state: TerminalUiState, onReset: () -> Unit) {
+    Column {
+        Text("Payment approved", style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(10.dp))
+        state.paymentResult?.let {
+            InfoRow("Transaction ID", it.transactionId)
+            InfoRow("Merchant code", it.merchantCode ?: "-")
+            InfoRow("Amount", it.amount.toString())
+            InfoRow("Fee", it.fee?.toString() ?: "-")
+            InfoRow("Total debited", it.totalDebited?.toString() ?: "-")
+        }
+        Spacer(Modifier.height(14.dp))
+        SecondaryActionButton(text = "New payment", onClick = onReset)
     }
 }
