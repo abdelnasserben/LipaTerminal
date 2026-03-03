@@ -36,7 +36,7 @@ private val AppCorner = RoundedCornerShape(16.dp)
 fun LipaScaffold(
     title: String,
     snackbarHostState: SnackbarHostState,
-    containerColor: Color = MaterialTheme.colorScheme.background,
+    containerColor: Color = BrandBlue,
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(

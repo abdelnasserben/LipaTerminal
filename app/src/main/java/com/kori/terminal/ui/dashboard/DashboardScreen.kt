@@ -27,12 +27,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.kori.terminal.ui.components.LipaScaffold
 import com.kori.terminal.ui.components.LipaScreenContainer
 import com.kori.terminal.ui.components.PrimaryActionButton
+import com.kori.terminal.ui.theme.ApplySystemBars
 import com.kori.terminal.ui.theme.BrandBlue
 import com.kori.terminal.ui.theme.SignalGreen
 import kotlinx.coroutines.launch
@@ -47,7 +47,7 @@ fun DashboardScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     var resetTapCount by remember { mutableIntStateOf(0) }
-    val view = LocalView.current
+    ApplySystemBars(color = BrandBlue, useDarkIcons = false)
 
     LaunchedEffect(Unit) { viewModel.refresh() }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }

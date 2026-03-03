@@ -33,7 +33,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -47,22 +46,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.core.view.WindowCompat
 import com.kori.terminal.R
 import com.kori.terminal.data.nfc.NfcUidReader
 import com.kori.terminal.ui.components.LipaScaffold
 import com.kori.terminal.ui.components.PrimaryActionButton
 import com.kori.terminal.ui.components.SecondaryActionButton
+import com.kori.terminal.ui.theme.ApplySystemBars
 import com.kori.terminal.ui.theme.BrandBlue
-import com.kori.terminal.ui.theme.LightBackground
 import com.kori.terminal.ui.theme.SignalGreen
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
@@ -80,22 +76,11 @@ fun TerminalScreen(
 ) {
     val s = viewModel.uiState.collectAsState().value
     val activity = LocalContext.current as Activity
-    val view = LocalView.current
     val nfcReader = remember { NfcUidReader(activity) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    val darkBackground = s.step == PaymentStep.TapCard
-    SideEffect {
-        val window = activity.window
-        val barColor = if (darkBackground) BrandBlue else LightBackground
-        window.statusBarColor = barColor.toArgb()
-        window.navigationBarColor = barColor.toArgb()
-        WindowCompat.getInsetsController(window, view).apply {
-            isAppearanceLightStatusBars = !darkBackground
-            isAppearanceLightNavigationBars = !darkBackground
-        }
-    }
+    ApplySystemBars(color = BrandBlue, useDarkIcons = false)
 
     LaunchedEffect(s.step) {
         if (s.step == PaymentStep.TapCard) {
@@ -209,7 +194,7 @@ private fun AmountLikeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(BrandBlue)
             .padding(padding)
     ) {
         Column(
@@ -440,7 +425,7 @@ private fun ProcessingBlock(padding: PaddingValues, onBackToDashboard: () -> Uni
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(BrandBlue)
             .padding(padding)
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center
@@ -458,7 +443,7 @@ private fun DoneBlock(state: TerminalUiState, padding: PaddingValues, onReset: (
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(LightBackground)
+            .background(BrandBlue)
             .padding(padding)
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center
