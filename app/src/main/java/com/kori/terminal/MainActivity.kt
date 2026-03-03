@@ -2,6 +2,7 @@ package com.kori.terminal
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +46,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             KoriTerminalTheme {
+                BackHandler(enabled = true) {}
+
                 val navController = rememberNavController()
                 val store = remember { SecureSettingsStore(applicationContext) }
                 var session: Session? by remember { mutableStateOf(null) }

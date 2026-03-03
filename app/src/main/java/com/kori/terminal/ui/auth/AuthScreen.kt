@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -71,15 +74,28 @@ fun AuthScreen(
             )
 
             Spacer(Modifier.height(20.dp))
+
             Text(
                 text = "Secure terminal access",
                 style = MaterialTheme.typography.titleLarge,
                 color = Color.White
             )
 
+            Spacer(Modifier.height(12.dp))
+
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Secure lock",
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(28.dp)
+            )
+
             Spacer(Modifier.height(44.dp))
+
             if (state.loading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.secondary
+                )
             } else {
                 PrimaryActionButton(
                     text = "Authenticate",
