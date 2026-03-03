@@ -22,8 +22,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,13 +47,14 @@ fun DashboardScreen(
     val state by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    var resetTapCount by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) { viewModel.refresh() }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
     LipaScaffold(title = "Dashboard", snackbarHostState = snackbarHostState) { padding ->
         LipaScreenContainer(padding) {
-            Text("Terminal Dashboard", style = MaterialTheme.typography.headlineLarge)
+            Text("Dashboard", style = MaterialTheme.typography.headlineLarge)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -60,7 +63,17 @@ fun DashboardScreen(
                 StatusCard(
                     modifier = Modifier.weight(1f),
                     title = "Reference",
-                    value = state.actorRef ?: "-"
+                    value = state.actorRef ?: "-",
+                    onValueClick = {
+                        resetTapCount += 1
+                        if (resetTapCount >= 11) {
+                            resetTapCount = 0
+                            scope.launch {
+                                onResetConfig()
+                                snackbarHostState.showSnackbar("Resetting settings...")
+                            }
+                        }
+                    }
                 )
                 StatusCard(
                     modifier = Modifier.weight(1f),
@@ -100,9 +113,6 @@ fun DashboardScreen(
 
             PaymentActionCard(onClick = onOpenTerminal)
             SecondaryActionButton(text = "Refresh", onClick = viewModel::refresh)
-            SecondaryActionButton(text = "Reset Settings") {
-                scope.launch { onResetConfig() }
-            }
         }
     }
 }
@@ -112,16 +122,22 @@ private fun StatusCard(
     title: String,
     value: String,
     modifier: Modifier = Modifier,
-    highlightValue: Boolean = false
+    highlightValue: Boolean = false,
+    onValueClick: (() -> Unit)? = null
 ) {
     LipaCard(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             Text(
                 text = value.ifBlank { "No data available" },
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.bodyLarge,
                 color = if (highlightValue) SignalGreen else MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                modifier = if (onValueClick != null) {
+                    Modifier.clickable(onClick = onValueClick)
+                } else {
+                    Modifier
+                }
             )
         }
     }
