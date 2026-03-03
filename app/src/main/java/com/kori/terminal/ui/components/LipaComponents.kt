@@ -1,6 +1,5 @@
 package com.kori.terminal.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,19 +40,6 @@ fun LipaScaffold(
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = 20.dp, vertical = 14.dp)
-            ) {
-                Column {
-                    Text("Lipa", style = MaterialTheme.typography.titleLarge)
-                    Text(title, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                }
-            }
-        },
         content = content
     )
 }
