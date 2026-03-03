@@ -21,7 +21,6 @@ data class PayByCardResponse(
 
 class PaymentService {
 
-    // ✅ HTTP/1.1 + timeouts (évite certains "end of stream" liés à HTTP/2/keep-alive)
     private val client = OkHttpClient.Builder()
         .protocols(listOf(Protocol.HTTP_1_1))
         .retryOnConnectionFailure(true)
@@ -40,7 +39,7 @@ class PaymentService {
         cardUid: String,
         pin: String
     ): Result<PayByCardResponse> = withContext(Dispatchers.IO) {
-        try {
+        runCatching {
             val url = baseUrl.trimEnd('/') + "/api/v1/payments/card"
 
             val bodyJson = JSONObject().apply {
@@ -55,7 +54,6 @@ class PaymentService {
                 .addHeader("Authorization", "Bearer $bearerToken")
                 .addHeader("Idempotency-Key", idempotencyKey)
                 .addHeader("Accept", "application/json")
-                // Optionnel: parfois aide si le serveur gère mal keep-alive
                 .addHeader("Connection", "close")
                 .build()
 
@@ -63,36 +61,36 @@ class PaymentService {
                 val rawBody = response.body?.string().orEmpty()
 
                 if (response.code != 201) {
-                    val wwwAuth = response.header("WWW-Authenticate").orEmpty()
-                    val msg = buildString {
-                        append("API HTTP ").append(response.code)
-                        if (wwwAuth.isNotBlank()) append(" — WWW-Authenticate: ").append(wwwAuth)
-                        if (rawBody.isNotBlank()) append(" — Body: ").append(rawBody.take(800))
-                    }
-                    return@withContext Result.failure(Exception(msg))
+                    throw Exception(extractMessage(rawBody, "Payment failed."))
                 }
 
                 val json = runCatching { JSONObject(rawBody) }.getOrNull()
-                    ?: return@withContext Result.failure(Exception("Réponse paiement invalide (JSON)"))
+                    ?: throw Exception("Invalid server response.")
 
                 val transactionId = json.optString("transactionId", "")
                 if (transactionId.isBlank()) {
-                    return@withContext Result.failure(Exception("Réponse paiement: transactionId manquant"))
+                    throw Exception("Invalid payment response.")
                 }
 
-                Result.success(
-                    PayByCardResponse(
-                        transactionId = transactionId,
-                        merchantCode = json.optString("merchantCode", null),
-                        cardUid = json.optString("cardUid", cardUid),
-                        amount = json.optDouble("amount", amount),
-                        fee = if (json.has("fee")) json.optDouble("fee") else null,
-                        totalDebited = if (json.has("totalDebited")) json.optDouble("totalDebited") else null
-                    )
+                PayByCardResponse(
+                    transactionId = transactionId,
+                    merchantCode = json.optString("merchantCode", null),
+                    cardUid = json.optString("cardUid", cardUid),
+                    amount = json.optDouble("amount", amount),
+                    fee = if (json.has("fee")) json.optDouble("fee") else null,
+                    totalDebited = if (json.has("totalDebited")) json.optDouble("totalDebited") else null
                 )
             }
-        } catch (e: Exception) {
-            Result.failure(Exception("Payment exception: ${e.message}", e))
+        }.recoverCatching { error ->
+            throw Exception(error.message ?: "Payment failed.")
         }
+    }
+
+    private fun extractMessage(rawBody: String, fallback: String): String {
+        val json = runCatching { JSONObject(rawBody) }.getOrNull() ?: return fallback
+        val candidates = listOf("message", "error", "detail")
+        return candidates.firstNotNullOfOrNull { key ->
+            json.optString(key).takeIf { it.isNotBlank() }
+        } ?: fallback
     }
 }

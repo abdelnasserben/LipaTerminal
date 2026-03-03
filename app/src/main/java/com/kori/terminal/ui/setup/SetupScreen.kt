@@ -32,14 +32,14 @@ fun SetupScreen(
     LaunchedEffect(state.isSaved) { if (state.isSaved) onContinueToTerminal() }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
-    LipaScaffold(title = "Device setup", snackbarHostState = snackbarHostState) { padding ->
+    LipaScaffold(title = "Device Setup", snackbarHostState = snackbarHostState) { padding ->
         LipaScreenContainer(padding) {
             LipaCard {
                 Column {
-                    Text("Backend Configuration", style = MaterialTheme.typography.titleLarge)
+                    Text("Server Configuration", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Credentials and endpoints are encrypted on-device.",
+                        "Connection details are securely stored on this device.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -48,8 +48,8 @@ fun SetupScreen(
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
                         value = state.koriBaseUrl,
-                        onValueChange = viewModel::onKoriBaseUrlChanged,
-                        label = { Text("Kori Base URL") },
+                        onValueChange = viewModel::onServerBaseUrlChanged,
+                        label = { Text("Server Base URL") },
                         singleLine = true
                     )
 
@@ -57,8 +57,8 @@ fun SetupScreen(
                     OutlinedTextField(
                         modifier = Modifier.fillMaxWidth(),
                         value = state.keycloakTokenUrl,
-                        onValueChange = viewModel::onKeycloakTokenUrlChanged,
-                        label = { Text("Keycloak Token URL") },
+                        onValueChange = viewModel::onServerTokenUrlChanged,
+                        label = { Text("Server Token URL") },
                         singleLine = true
                     )
 
@@ -67,7 +67,7 @@ fun SetupScreen(
                         modifier = Modifier.fillMaxWidth(),
                         value = state.clientId,
                         onValueChange = viewModel::onClientIdChanged,
-                        label = { Text("Client ID") },
+                        label = { Text("App ID") },
                         singleLine = true
                     )
 
@@ -76,13 +76,13 @@ fun SetupScreen(
                         modifier = Modifier.fillMaxWidth(),
                         value = state.clientSecret,
                         onValueChange = viewModel::onClientSecretChanged,
-                        label = { Text("Client Secret") },
+                        label = { Text("App Secret") },
                         visualTransformation = PasswordVisualTransformation(),
                         singleLine = true
                     )
 
                     Spacer(Modifier.height(20.dp))
-                    PrimaryActionButton(text = "Save and continue") { viewModel.save() }
+                    PrimaryActionButton(text = "Save and Continue") { viewModel.save() }
                 }
             }
         }

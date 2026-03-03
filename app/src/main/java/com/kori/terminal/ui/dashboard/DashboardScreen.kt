@@ -37,12 +37,12 @@ fun DashboardScreen(
     LaunchedEffect(Unit) { viewModel.refresh() }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
-    LipaScaffold(title = "Operations dashboard", snackbarHostState = snackbarHostState) { padding ->
+    LipaScaffold(title = "Dashboard", snackbarHostState = snackbarHostState) { padding ->
         LipaScreenContainer(padding) {
             LipaCard {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Terminal status", style = MaterialTheme.typography.titleLarge)
-                    InfoRow("Actor reference", state.actorRef ?: "-")
+                    Text("Terminal Status", style = MaterialTheme.typography.titleLarge)
+                    InfoRow("Reference", state.actorRef ?: "-")
                     if (state.loading) {
                         Spacer(Modifier.height(8.dp))
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
@@ -55,8 +55,8 @@ fun DashboardScreen(
             DashboardBlock("Configuration", state.config)
 
             SecondaryActionButton(text = "Refresh", onClick = viewModel::refresh)
-            PrimaryActionButton(text = "Open terminal", onClick = onOpenTerminal)
-            SecondaryActionButton(text = "Reset configuration") {
+            PrimaryActionButton(text = "Open Terminal", onClick = onOpenTerminal)
+            SecondaryActionButton(text = "Reset Settings") {
                 scope.launch { onResetConfig() }
             }
         }
@@ -69,7 +69,7 @@ private fun DashboardBlock(title: String, data: Map<String, String>) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)
             if (data.isEmpty()) {
-                Text("No data", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("No data available", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 data.entries.sortedBy { it.key }.forEach { (key, value) ->
                     InfoRow(label = key, value = value)

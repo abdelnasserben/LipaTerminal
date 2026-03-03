@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 data class SetupUiState(
     val koriBaseUrl: String = "http://localhost:8081",
-    val keycloakTokenUrl: String = "http://localhost:8080/realms/<REALM>/protocol/openid-connect/token",
+    val keycloakTokenUrl: String = "http://localhost:8080/token",
     val clientId: String = "",
     val clientSecret: String = "",
     val isSaved: Boolean = false,
@@ -42,8 +42,8 @@ class SetupViewModel(
         }
     }
 
-    fun onKoriBaseUrlChanged(v: String) = _uiState.update { it.copy(koriBaseUrl = v, isSaved = false, error = null) }
-    fun onKeycloakTokenUrlChanged(v: String) = _uiState.update { it.copy(keycloakTokenUrl = v, isSaved = false, error = null) }
+    fun onServerBaseUrlChanged(v: String) = _uiState.update { it.copy(koriBaseUrl = v, isSaved = false, error = null) }
+    fun onServerTokenUrlChanged(v: String) = _uiState.update { it.copy(keycloakTokenUrl = v, isSaved = false, error = null) }
     fun onClientIdChanged(v: String) = _uiState.update { it.copy(clientId = v, isSaved = false, error = null) }
     fun onClientSecretChanged(v: String) = _uiState.update { it.copy(clientSecret = v, isSaved = false, error = null) }
 
@@ -58,7 +58,7 @@ class SetupViewModel(
             )
 
             if (!cfg.isValid()) {
-                _uiState.update { it.copy(error = "Tous les champs sont obligatoires.", isSaved = false) }
+                _uiState.update { it.copy(error = "All fields are required.", isSaved = false) }
                 return@launch
             }
 

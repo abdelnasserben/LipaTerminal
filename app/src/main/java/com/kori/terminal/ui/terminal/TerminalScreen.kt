@@ -52,15 +52,15 @@ fun TerminalScreen(
 
     LaunchedEffect(s.paymentError) { s.paymentError?.let { snackbarHostState.showSnackbar(it) } }
 
-    LipaScaffold(title = "Payment terminal", snackbarHostState = snackbarHostState) { padding ->
+    LipaScaffold(title = "Payment Terminal", snackbarHostState = snackbarHostState) { padding ->
         LipaScreenContainer(padding) {
-            SecondaryActionButton(text = "Back to dashboard", onClick = onBackToDashboard)
+            SecondaryActionButton(text = "Back to Dashboard", onClick = onBackToDashboard)
 
             LipaCard {
                 Column {
-                    Text("Current session", style = MaterialTheme.typography.titleMedium)
+                    Text("Current Session", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(10.dp))
-                    InfoRow("Actor", s.actorRef)
+                    InfoRow("Reference", s.actorRef)
                 }
             }
 
@@ -90,37 +90,37 @@ private fun EnterAmountBlock(amount: String, onAmountChange: (String) -> Unit, o
             singleLine = true
         )
         Spacer(Modifier.height(14.dp))
-        PrimaryActionButton(text = "Lock amount", onClick = onConfirm)
+        PrimaryActionButton(text = "Confirm Amount", onClick = onConfirm)
     }
 }
 
 @Composable
 private fun TapCardBlock(amount: String, isNfcAvailable: Boolean, onSimulate: () -> Unit) {
     Column {
-        Text("Tap card", style = MaterialTheme.typography.titleLarge)
+        Text("Scan Card", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         InfoRow("Amount", amount)
-        InfoRow("NFC", if (isNfcAvailable) "Ready" else "Unavailable")
+        InfoRow("Reader", if (isNfcAvailable) "Ready" else "Unavailable")
         Spacer(Modifier.height(14.dp))
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondary)
         Spacer(Modifier.height(14.dp))
-        SecondaryActionButton(text = "Simulate card (debug)", onClick = onSimulate)
+        SecondaryActionButton(text = "Simulate Card", onClick = onSimulate)
     }
 }
 
 @Composable
 private fun EnterPinBlock(state: TerminalUiState, onPinChange: (String) -> Unit, onPay: () -> Unit) {
     Column {
-        Text("PIN verification", style = MaterialTheme.typography.titleLarge)
+        Text("Card Verification", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         InfoRow("Amount", state.amountText)
-        InfoRow("Card UID", state.cardUid ?: "-")
+        InfoRow("Card", state.cardUid ?: "-")
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             value = state.pinText,
             onValueChange = onPinChange,
-            label = { Text("PIN (4 digits)") },
+            label = { Text("Security Code (4 digits)") },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation()
         )
@@ -132,7 +132,7 @@ private fun EnterPinBlock(state: TerminalUiState, onPinChange: (String) -> Unit,
 @Composable
 private fun ProcessingBlock() {
     Column {
-        Text("Processing payment", style = MaterialTheme.typography.titleLarge)
+        Text("Processing Payment", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(12.dp))
         LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.secondary)
     }
@@ -141,16 +141,16 @@ private fun ProcessingBlock() {
 @Composable
 private fun DoneBlock(state: TerminalUiState, onReset: () -> Unit) {
     Column {
-        Text("Payment approved", style = MaterialTheme.typography.titleLarge)
+        Text("Payment Approved", style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(10.dp))
         state.paymentResult?.let {
-            InfoRow("Transaction ID", it.transactionId)
-            InfoRow("Merchant code", it.merchantCode ?: "-")
+            InfoRow("Transaction", it.transactionId)
+            InfoRow("Merchant", it.merchantCode ?: "-")
             InfoRow("Amount", it.amount.toString())
             InfoRow("Fee", it.fee?.toString() ?: "-")
-            InfoRow("Total debited", it.totalDebited?.toString() ?: "-")
+            InfoRow("Total Charged", it.totalDebited?.toString() ?: "-")
         }
         Spacer(Modifier.height(14.dp))
-        SecondaryActionButton(text = "New payment", onClick = onReset)
+        SecondaryActionButton(text = "New Payment", onClick = onReset)
     }
 }

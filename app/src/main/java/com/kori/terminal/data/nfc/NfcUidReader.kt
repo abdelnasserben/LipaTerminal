@@ -12,7 +12,7 @@ class NfcUidReader(
 
     fun enable(onUid: (String) -> Unit, onError: (String) -> Unit) {
         val a = adapter ?: run {
-            onError("NFC indisponible sur cet appareil")
+            onError("Card reader is unavailable on this device.")
             return
         }
 

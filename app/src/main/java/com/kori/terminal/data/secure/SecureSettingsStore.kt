@@ -56,7 +56,7 @@ class SecureSettingsStore(private val context: Context) {
     }
 
     suspend fun saveConfig(config: AppConfig) {
-        require(config.isValid()) { "Config invalide" }
+        require(config.isValid()) { "Invalid settings" }
         val blob = encryptConfig(config)
         context.dataStore.edit { prefs ->
             prefs[KEY_CONFIG_BLOB] = blob
@@ -71,7 +71,7 @@ class SecureSettingsStore(private val context: Context) {
     }
 
     suspend fun saveSession(session: StoredSession) {
-        require(session.isValid()) { "Session invalide" }
+        require(session.isValid()) { "Invalid session" }
         val blob = encryptSession(session)
         context.dataStore.edit { prefs ->
             prefs[KEY_SESSION_BLOB] = blob

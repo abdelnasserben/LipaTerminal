@@ -23,6 +23,8 @@ class TerminalMeService {
             val health = getMap(cleanBaseUrl, bearerToken, "/api/v1/terminal/me/health")
             val config = getMap(cleanBaseUrl, bearerToken, "/api/v1/terminal/me/config")
             TerminalMeSnapshot(status = status, health = health, config = config)
+        }.recoverCatching { error ->
+            throw Exception(error.message ?: "Unable to load data.")
         }
     }
 
@@ -36,13 +38,21 @@ class TerminalMeService {
         client.newCall(request).execute().use { response ->
             val rawBody = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
-                error("$path HTTP ${response.code}: ${rawBody.take(300)}")
+                throw Exception(extractMessage(rawBody, "Unable to load data."))
             }
 
-            val json = JSONObject(rawBody)
-            return json.keys().asSequence().associateWith { key ->
-                json.optString(key, "")
-            }
+            val json = runCatching { JSONObject(rawBody) }.getOrNull()
+                ?: throw Exception("Invalid server response.")
+
+            return json.keys().asSequence().associateWith { key -> json.optString(key, "") }
         }
+    }
+
+    private fun extractMessage(rawBody: String, fallback: String): String {
+        val json = runCatching { JSONObject(rawBody) }.getOrNull() ?: return fallback
+        val candidates = listOf("message", "error", "detail")
+        return candidates.firstNotNullOfOrNull { key ->
+            json.optString(key).takeIf { it.isNotBlank() }
+        } ?: fallback
     }
 }

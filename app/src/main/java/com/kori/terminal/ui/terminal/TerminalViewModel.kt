@@ -54,7 +54,7 @@ class TerminalViewModel(
     fun lockAmountAndStartNfc() {
         val amt = _uiState.value.amountText.trim()
         if (amt.isBlank()) {
-            _uiState.update { it.copy(paymentError = "Saisis un montant") }
+            _uiState.update { it.copy(paymentError = "Enter an amount.") }
             return
         }
         _uiState.update {
@@ -86,25 +86,25 @@ class TerminalViewModel(
             val config = withTimeoutOrNull(1500) {
                 store.configFlow().filterNotNull().firstOrNull()
             } ?: run {
-                _uiState.update { it.copy(paymentError = "Configuration absente.") }
+                _uiState.update { it.copy(paymentError = "Missing settings.") }
                 return@launch
             }
 
             val amount = parseAmount(_uiState.value.amountText)
             if (amount == null || amount <= 0.0) {
-                _uiState.update { it.copy(paymentError = "Montant invalide") }
+                _uiState.update { it.copy(paymentError = "Invalid amount.") }
                 return@launch
             }
 
             val uid = _uiState.value.cardUid
             if (uid.isNullOrBlank()) {
-                _uiState.update { it.copy(paymentError = "Carte absente (UID)") }
+                _uiState.update { it.copy(paymentError = "Card not detected.") }
                 return@launch
             }
 
             val pin = _uiState.value.pinText
             if (!Regex("^\\d{4}$").matches(pin)) {
-                _uiState.update { it.copy(paymentError = "PIN invalide (4 chiffres)") }
+                _uiState.update { it.copy(paymentError = "Invalid security code (4 digits).") }
                 return@launch
             }
 

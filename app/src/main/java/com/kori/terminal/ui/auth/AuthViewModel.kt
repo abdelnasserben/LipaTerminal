@@ -40,7 +40,7 @@ class AuthViewModel(
 
             if (config == null) {
                 _uiState.update {
-                    it.copy(loading = false, error = "Configuration absente. Enregistre d'abord la configuration.")
+                    it.copy(loading = false, error = "Missing settings. Please save your settings first.")
                 }
                 return@launch
             }

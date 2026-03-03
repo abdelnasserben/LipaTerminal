@@ -30,15 +30,15 @@ fun AuthScreen(
     LaunchedEffect(Unit) { viewModel.authenticate(onAuthenticated) }
     LaunchedEffect(state.error) { state.error?.let { snackbarHostState.showSnackbar(it) } }
 
-    LipaScaffold(title = "Terminal Authentication", snackbarHostState = snackbarHostState) { padding ->
+    LipaScaffold(title = "Device Access", snackbarHostState = snackbarHostState) { padding ->
         LipaScreenContainer(padding) {
             Spacer(Modifier.height(16.dp))
             LipaCard {
                 Column {
-                    Text("Secure Terminal Access", style = MaterialTheme.typography.titleLarge)
+                    Text("Secure Access", style = MaterialTheme.typography.titleLarge)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Lipa authenticates this device before any transaction is allowed.",
+                        "The app verifies this device before allowing any action.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -47,7 +47,7 @@ fun AuthScreen(
                     if (state.loading) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.secondary)
                     } else {
-                        PrimaryActionButton(text = "Retry authentication") {
+                        PrimaryActionButton(text = "Retry Access") {
                             viewModel.authenticate(onAuthenticated)
                         }
                     }

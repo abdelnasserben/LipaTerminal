@@ -36,7 +36,7 @@ class DashboardViewModel(
 
             val config = store.configFlow().filterNotNull().firstOrNull()
             if (config == null) {
-                _uiState.update { it.copy(loading = false, error = "Configuration absente") }
+                _uiState.update { it.copy(loading = false, error = "Missing settings.") }
                 return@launch
             }
 
