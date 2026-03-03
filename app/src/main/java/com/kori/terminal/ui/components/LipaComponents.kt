@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -88,11 +89,28 @@ fun PrimaryActionButton(text: String, modifier: Modifier = Modifier, enabled: Bo
 
 @Composable
 fun SecondaryActionButton(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    SecondaryActionButton(
+        text = text,
+        modifier = modifier,
+        enabled = enabled,
+        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue, contentColor = Color.White),
+        onClick = onClick
+    )
+}
+
+@Composable
+fun SecondaryActionButton(
+    text: String,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors,
+    onClick: () -> Unit
+) {
     Button(
         onClick = onClick,
         enabled = enabled,
         shape = AppCorner,
-        colors = ButtonDefaults.buttonColors(containerColor = BrandBlue, contentColor = Color.White),
+        colors = colors,
         contentPadding = PaddingValues(vertical = 14.dp),
         modifier = modifier.fillMaxWidth()
     ) {
