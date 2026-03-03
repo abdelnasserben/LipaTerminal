@@ -28,9 +28,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.gestures.detectTapGestures
 import com.kori.terminal.ui.components.LipaCard
 import com.kori.terminal.ui.components.LipaScaffold
 import com.kori.terminal.ui.components.LipaScreenContainer
@@ -134,7 +136,9 @@ private fun StatusCard(
                 color = if (highlightValue) SignalGreen else MaterialTheme.colorScheme.onSurface,
                 fontWeight = FontWeight.Medium,
                 modifier = if (onValueClick != null) {
-                    Modifier.clickable(onClick = onValueClick)
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures(onTap = { onValueClick() })
+                    }
                 } else {
                     Modifier
                 }
