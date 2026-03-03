@@ -57,14 +57,6 @@ fun TerminalScreen(
             SecondaryActionButton(text = "Back to Dashboard", onClick = onBackToDashboard)
 
             LipaCard {
-                Column {
-                    Text("Current Session", style = MaterialTheme.typography.titleMedium)
-                    Spacer(Modifier.height(10.dp))
-                    InfoRow("Reference", s.actorRef)
-                }
-            }
-
-            LipaCard {
                 when (s.step) {
                     PaymentStep.EnterAmount -> EnterAmountBlock(s.amountText, viewModel::onAmountChanged, viewModel::lockAmountAndStartNfc)
                     PaymentStep.TapCard -> TapCardBlock(s.amountText, nfcReader.isAvailable(), viewModel::simulateCard)
