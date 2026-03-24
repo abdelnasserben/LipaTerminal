@@ -22,11 +22,14 @@ data class AppConfig(
     val clientSecret: String
 ) {
     fun isValid(): Boolean =
-        koriBaseUrl.isNotBlank() &&
-                keycloakTokenUrl.isNotBlank() &&
+        koriBaseUrl.isHttpsUrl() &&
+                keycloakTokenUrl.isHttpsUrl() &&
                 clientId.isNotBlank() &&
                 clientSecret.isNotBlank()
 }
+
+private fun String.isHttpsUrl(): Boolean =
+    startsWith("https://", ignoreCase = true) && isNotBlank()
 
 data class StoredSession(
     val token: String,

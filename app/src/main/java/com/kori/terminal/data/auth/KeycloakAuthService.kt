@@ -21,6 +21,25 @@ class KeycloakAuthService {
 
     suspend fun authenticate(config: AppConfig): Result<AuthResult> = withContext(Dispatchers.IO) {
         runCatching {
+            val tokenEndpointCandidates = buildTokenEndpointCandidates(config.keycloakTokenUrl)
+            var lastErrorMessage = "Authentication failed."
+
+            for (endpoint in tokenEndpointCandidates) {
+                val attempt = requestToken(endpoint, config)
+                if (attempt.isSuccess) {
+                    return@runCatching attempt.getOrThrow()
+                }
+                lastErrorMessage = attempt.exceptionOrNull()?.message ?: lastErrorMessage
+            }
+
+            throw Exception(lastErrorMessage)
+        }.recoverCatching { error ->
+            throw Exception(error.message ?: "Authentication failed.")
+        }
+    }
+
+    private fun requestToken(tokenUrl: String, config: AppConfig): Result<AuthResult> {
+        return runCatching {
             val requestBody = FormBody.Builder()
                 .add("grant_type", "client_credentials")
                 .add("client_id", config.clientId)
@@ -28,19 +47,19 @@ class KeycloakAuthService {
                 .build()
 
             val request = Request.Builder()
-                .url(config.keycloakTokenUrl)
+                .url(tokenUrl)
                 .post(requestBody)
                 .build()
 
             client.newCall(request).execute().use { response ->
-                val rawBody = response.body?.string().orEmpty()
+                val rawBody = response.body.string()
 
                 if (!response.isSuccessful) {
-                    throw Exception(extractMessage(rawBody, "Authentication failed."))
+                    throw Exception(extractMessage(rawBody, "Authentication failed (${response.code})."))
                 }
 
                 val json = runCatching { JSONObject(rawBody) }.getOrNull()
-                    ?: throw Exception("Invalid server response.")
+                    ?: throw Exception("Invalid server response from $tokenUrl.")
 
                 val accessToken = json.optString("access_token", "")
                 if (accessToken.isBlank()) {
@@ -50,9 +69,29 @@ class KeycloakAuthService {
                 val actorRef = extractActorReference(accessToken)
                 AuthResult(accessToken = accessToken, actorRef = actorRef)
             }
-        }.recoverCatching { error ->
-            throw Exception(error.message ?: "Authentication failed.")
         }
+    }
+
+    private fun buildTokenEndpointCandidates(rawUrl: String): List<String> {
+        val base = rawUrl.trim().trimEnd('/')
+        if (base.isBlank()) return emptyList()
+
+        val candidates = linkedSetOf<String>()
+        candidates += base
+
+        if (!base.endsWith("/token")) {
+            candidates += "$base/token"
+        }
+
+        if (!base.endsWith("/token") && !base.contains("/protocol/openid-connect/token")) {
+            if (base.contains("/realms/")) {
+                candidates += "$base/protocol/openid-connect/token"
+            } else {
+                candidates += "$base/realms/kori/protocol/openid-connect/token"
+            }
+        }
+
+        return candidates.toList()
     }
 
     private fun extractActorReference(token: String): String {

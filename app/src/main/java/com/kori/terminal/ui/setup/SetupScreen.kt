@@ -87,24 +87,6 @@ fun SetupScreen(
 
                         OutlinedTextField(
                             modifier = Modifier.fillMaxWidth(),
-                            value = state.koriBaseUrl,
-                            onValueChange = viewModel::onServerBaseUrlChanged,
-                            label = { Text("Server Base URL") },
-                            colors = fieldColors,
-                            singleLine = true
-                        )
-
-                        OutlinedTextField(
-                            modifier = Modifier.fillMaxWidth(),
-                            value = state.keycloakTokenUrl,
-                            onValueChange = viewModel::onServerTokenUrlChanged,
-                            label = { Text("Server Token URL") },
-                            colors = fieldColors,
-                            singleLine = true
-                        )
-
-                        OutlinedTextField(
-                            modifier = Modifier.fillMaxWidth(),
                             value = state.clientId,
                             onValueChange = viewModel::onClientIdChanged,
                             label = { Text("App ID") },
